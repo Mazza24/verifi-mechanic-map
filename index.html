@@ -17677,13 +17677,22 @@ function refresh(){
     return;
   }
   if(q.length>=2){
-    const pre=[],inc=[];
+    const m=q.match(/^(.*?)[ ,]+(act|nsw|nt|qld|sa|tas|vic|wa)\.?$/);
+    const qn=m?m[1].trim():q, qs=m?m[2].toUpperCase():null;
+    const isPc=/^\d{2,4}$/.test(qn);
+    const exact=[],pre=[],inc=[];
     for(const s of SUBURBS){
-      if(s.lc.startsWith(q))pre.push(s);
-      else if(s.lc.includes(q))inc.push(s);
-      if(pre.length>=6)break;
+      if(qs&&s.st!==qs)continue;
+      if(isPc){
+        if(s.pc.startsWith(qn))pre.push(s);
+        continue;
+      }
+      if(s.lc===qn)exact.push(s);
+      else if(s.lc.startsWith(qn))pre.push(s);
+      else if(inc.length<10&&s.lc.includes(qn))inc.push(s);
     }
-    placeSuggestions=pre.concat(inc).slice(0,6);
+    pre.sort((a,b)=>a.lc.length-b.lc.length||(a.lc<b.lc?-1:1));
+    placeSuggestions=exact.concat(pre,inc).slice(0,10);
     if(placeSuggestions.length){
       const h=document.createElement('div');h.className='sechead';h.textContent='Suburbs - click to see mechanics nearby';resultsDiv.appendChild(h);
       placeSuggestions.forEach(s=>{
