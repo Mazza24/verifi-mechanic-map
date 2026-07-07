@@ -17670,10 +17670,10 @@ function typeLabel(r){
   const base=r.m&&r.w?'Mobile Mechanic & Workshop':r.m?'Mobile Mechanic':r.w?'Workshop':(r.t||'Mechanic');
   return (r.p?'Primary ':'')+base;
 }
-const SEED_CUTOFF=Date.parse('2026-07-07T06:00:00Z');
+const SEED_CUTOFF=Date.parse('2026-07-07T08:00:00Z'); // after initial seed + price backfill
 function isRecent(r){
   const cr=r.created?Date.parse(r.created):0, up=r.updated?Date.parse(r.updated):0;
-  const edited=up&&cr&&(up-cr>60000)&&(Date.now()-up)<7*864e5;
+  const edited=up>SEED_CUTOFF&&cr&&(up-cr>60000)&&(Date.now()-up)<7*864e5;
   const added=cr>SEED_CUTOFF&&(Date.now()-cr)<7*864e5;
   return edited||added;
 }
@@ -17747,7 +17747,7 @@ function popupHtml(r){
   if(r.ph)h+='<div>&#128222; <a href="tel:'+esc((''+r.ph).replace(/\s/g,''))+'">'+esc(r.ph)+'<\/a><\/div>';
   if(r.em)h+='<div>&#9993;&#65039; <a href="mailto:'+esc(r.em)+'">'+esc(r.em)+'<\/a><\/div>';
   if(r.app)h+='<div style="font-size:12px;color:#6B7280">App: '+esc(r.app)+'<\/div>';
-  if(r.radius)h+='<div style="font-size:12px;color:#6B7280">Service radius: '+esc(r.radius)+' km (shown on map)<\/div>';
+  if(r.radius&&r.m)h+='<div style="font-size:12px;color:#6B7280">Service radius: '+esc(r.radius)+' km (shown on map)<\/div>';
   if(r.lat!=null){
     const origin=nearPlace?'&origin='+encodeURIComponent(nearPlace.addrq||(nearPlace.lat+','+nearPlace.lon)):'';
     const dlabel=nearPlace?'Directions from '+esc(nearPlace.n.split(',')[0]):'Directions';
@@ -18071,7 +18071,7 @@ map.on('popupopen',e=>{
   const root=el.querySelector('.popup');if(!root)return;
   const rec=RECS.find(r=>''+r.id===root.dataset.id);if(!rec)return;
   if(radiusCircle){map.removeLayer(radiusCircle);radiusCircle=null;}
-  if(rec.radius&&rec.lat!=null){
+  if(rec.radius&&rec.m&&rec.lat!=null){
     radiusCircle=L.circle([rec.lat,rec.lon],{radius:rec.radius*1000,color:'#0F5E8C',weight:1.5,dashArray:'4 4',fillColor:'#0F5E8C',fillOpacity:.06,interactive:false}).addTo(map);
   }
   el.querySelectorAll('[data-act]').forEach(btn=>{
