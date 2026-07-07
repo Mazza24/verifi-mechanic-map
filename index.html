@@ -17698,7 +17698,11 @@ function popupHtml(r){
   if(r.ph)h+='<div>&#128222; <a href="tel:'+esc((''+r.ph).replace(/\s/g,''))+'">'+esc(r.ph)+'<\/a><\/div>';
   if(r.em)h+='<div>&#9993;&#65039; <a href="mailto:'+esc(r.em)+'">'+esc(r.em)+'<\/a><\/div>';
   if(r.app)h+='<div style="font-size:12px;color:#6B7280">App: '+esc(r.app)+'<\/div>';
-  if(r.lat!=null)h+='<div style="margin-top:4px"><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+r.lat+','+r.lon+'">Directions &#8599;<\/a> &nbsp; <a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(r.addr||r.lat+','+r.lon)+'">Open in Google Maps &#8599;<\/a><\/div>';
+  if(r.lat!=null){
+    const origin=nearPlace?'&origin='+encodeURIComponent(nearPlace.addrq||(nearPlace.lat+','+nearPlace.lon)):'';
+    const dlabel=nearPlace?'Directions from '+esc(nearPlace.n.split(',')[0]):'Directions';
+    h+='<div style="margin-top:4px"><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1'+origin+'&destination='+encodeURIComponent(r.addr||r.lat+','+r.lon)+'">'+dlabel+' &#8599;<\/a> &nbsp; <a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(r.addr||r.lat+','+r.lon)+'">Open in Google Maps &#8599;<\/a><\/div>';
+  }
   if(r.c)h+='<div class="cmt">'+esc(r.c)+'<\/div>';
   h+=noteHtml(r);
   if(editable()){
@@ -17757,6 +17761,7 @@ function mechRow(r,km){
   return div;
 }
 function setPlace(s){
+  if(!s.addrq)s.addrq=[s.n,s.st,s.pc].filter(Boolean).join(' ');
   nearPlace=s;
   searchEl.value='';
   if(searchMarker)map.removeLayer(searchMarker);
@@ -17780,7 +17785,7 @@ async function geocodeAddress(q,rowEl){
     const res=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=au&q='+encodeURIComponent(q));
     const js=await res.json();
     if(js&&js.length){
-      setPlace({n:js[0].display_name.split(',').slice(0,3).join(','),st:'',pc:'',lat:+js[0].lat,lon:+js[0].lon});
+      setPlace({n:js[0].display_name.split(',').slice(0,3).join(','),st:'',pc:'',lat:+js[0].lat,lon:+js[0].lon,addrq:q});
       return true;
     }
   }catch(e){}
