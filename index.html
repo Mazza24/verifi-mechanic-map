@@ -17821,6 +17821,11 @@ function setPlace(s){
   searchEl.value='';
   if(searchMarker)map.removeLayer(searchMarker);
   searchMarker=L.marker([s.lat,s.lon],{zIndexOffset:900,icon:L.divIcon({className:'',html:'<div class="searchpin"><\/div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(map);
+  let ph='<div class="popup"><h3>Searched location<\/h3><div>'+esc(s.addrq)+'<\/div>';
+  const matched=[s.n,s.st,s.pc].filter(Boolean).join(' ');
+  if(matched&&matched.toLowerCase()!==s.addrq.toLowerCase())ph+='<div style="font-size:12px;color:#6B7280">Matched: '+esc(matched)+'<\/div>';
+  ph+='<div style="margin-top:4px"><a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.addrq)+'">Open in Google Maps &#8599;<\/a><\/div><\/div>';
+  searchMarker.bindPopup(ph);
   map.setView([s.lat,s.lon],11);
   nearbar.style.display='flex';
   neartxt.textContent='Nearest to '+[s.n,s.st,s.pc].filter(Boolean).join(' ');
