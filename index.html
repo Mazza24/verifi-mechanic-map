@@ -17758,6 +17758,7 @@ function popupHtml(r){
   h+='<div class="actions"><button data-act="copy">Copy details<\/button>';
   if(editable()){
     h+='<button data-act="edit">Edit<\/button>';
+    if(r.lat!=null)h+='<button data-act="movepin">Move pin<\/button>';
     h+=r.dnu?'<button data-act="restore">Restore (remove DO NOT USE)<\/button>':'<button data-act="dnu" class="warn">Mark DO NOT USE<\/button>';
   }
   h+='<\/div>';
@@ -18083,7 +18084,23 @@ map.on('popupopen',e=>{
     btn.addEventListener('click',async ev=>{
       ev.stopPropagation();
       const act=btn.dataset.act;
-      if(act==='copy'){
+      if(act==='movepin'){
+        map.closePopup();
+        const mk=markers.find(m=>m.r===rec);if(!mk)return;
+        mk.m.dragging.enable();
+        const banner=document.getElementById('offline');
+        banner.textContent='Drag the "'+rec.n+'" pin to the correct spot and release it to save.';
+        banner.style.display='block';
+        mk.m.once('dragend',async ()=>{
+          mk.m.dragging.disable();
+          banner.style.display='none';
+          const ll=mk.m.getLatLng();
+          if(confirm('Save this new position for "'+rec.n+'"?')){
+            await sbPatch(rec,{lat:+ll.lat.toFixed(6),lon:+ll.lng.toFixed(6)},'moved pin','');
+          }else await sbLoad();
+        });
+      }
+      else if(act==='copy'){
         const txt=rec.n+' - '+(rec.ph||'no phone')+(rec.price?' - $'+rec.price+' inc GST':'')+' - '+rec.addr;
         try{await navigator.clipboard.writeText(txt);btn.textContent='Copied ✓';setTimeout(()=>{btn.textContent='Copy details';},1500);}
         catch(err){prompt('Copy this:',txt);}
@@ -18142,14 +18159,23 @@ document.getElementById('fsave').addEventListener('click',async ()=>{
   if(!name||!addr||!author){err.textContent='Name, address and your name are required.';err.style.display='block';return;}
   localStorage.setItem('vi_author',author);
   const btn=document.getElementById('fsave');btn.disabled=true;btn.textContent='Saving...';
-  let lat=formRec?formRec.lat:null,lon=formRec?formRec.lon:null;
+  let lat=formRec?formRec.lat:null,lon=formRec?formRec.lon:null,geoApprox=false;
   if(!formRec||formRec.addr!==addr){
+    lat=null;lon=null;
     try{
       const res=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=au&q='+encodeURIComponent(addr));
       const js=await res.json();
       if(js&&js.length){lat=+js[0].lat;lon=+js[0].lon;}
-      else {lat=null;lon=null;}
     }catch(e){}
+    if(lat==null){
+      // street lookup failed: fall back to the suburb/postcode centre from the gazetteer
+      const up=addr.toUpperCase();
+      const pcm=up.match(/\b(\d{4})\b/),stm=up.match(/\b(NSW|QLD|VIC|SA|WA|TAS|NT|ACT)\b/);
+      let s=null;
+      if(pcm)s=SUBURBS.find(x=>x.pc===pcm[1]&&up.includes(x.n.toUpperCase()))||SUBURBS.find(x=>x.pc===pcm[1]&&(!stm||x.st===stm[1]));
+      if(!s&&stm)s=SUBURBS.find(x=>x.st===stm[1]&&x.n.length>3&&up.includes(x.n.toUpperCase()));
+      if(s){lat=s.lat;lon=s.lon;geoApprox=true;}
+    }
   }
   const fields={name,address:addr,phone:g('f_ph'),email:g('f_em'),app:g('f_app'),comments:g('f_c'),
     is_mobile:document.getElementById('f_m').checked,is_workshop:document.getElementById('f_w').checked,
@@ -18171,6 +18197,7 @@ document.getElementById('fsave').addEventListener('click',async ()=>{
   modal.style.display='none';
   await sbLoad();
   if(lat==null)alert('Saved, but the address could not be placed on the map. Edit the mechanic and refine the address (add suburb, state, postcode) to give it a pin.');
+  else if(geoApprox)alert('Saved. The exact street could not be found in the map data, so the pin was placed at the suburb centre - use "Move pin" in the popup to fine-tune it.');
 });
 if(editable()){
   document.getElementById('addbtn').style.display='inline-block';
