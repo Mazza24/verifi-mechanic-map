@@ -17850,6 +17850,13 @@ async function geocodeAddress(q,rowEl){
       return true;
     }
   }catch(e){}
+  // exact street not in OSM map data: fall back to the suburb/postcode centre from the gazetteer
+  const up=q.toUpperCase();
+  const pcm=up.match(/\b(\d{4})\b/),stm=up.match(/\b(NSW|QLD|VIC|SA|WA|TAS|NT|ACT)\b/);
+  let fs=null;
+  if(pcm)fs=SUBURBS.find(x=>x.pc===pcm[1]&&up.includes(x.n.toUpperCase()))||SUBURBS.find(x=>x.pc===pcm[1]&&(!stm||x.st===stm[1]));
+  if(!fs&&stm)fs=SUBURBS.find(x=>x.st===stm[1]&&x.n.length>3&&up.includes(x.n.toUpperCase()));
+  if(fs){setPlace({n:fs.n,st:fs.st,pc:fs.pc,lat:fs.lat,lon:fs.lon,addrq:q});return true;}
   if(rowEl)rowEl.innerHTML='<span class="nm">Address not found - check spelling or add suburb/state<\/span>';
   return false;
 }
